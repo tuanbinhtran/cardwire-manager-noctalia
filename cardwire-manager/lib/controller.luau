@@ -44,8 +44,14 @@ function M.new(deps)
     return status.refreshing or status.applying
   end
 
-  local function schedulePoll()
-    nextPollAt = (pollingEnabled and not status.loading) and (host.nowMs() + pollIntervalMs) or nil
+  -- Fixed-rate poll like the DMS repeating Timer: armed when polling becomes
+  -- active, restarted only when asked (interval change), cleared when inactive.
+  local function syncPoll(restart)
+    if not (pollingEnabled and not status.loading) then
+      nextPollAt = nil
+    elseif restart or nextPollAt == nil then
+      nextPollAt = host.nowMs() + pollIntervalMs
+    end
   end
 
   -- retryIndex counts fired retry timers only (as DMS does), so failed manual
@@ -110,7 +116,7 @@ function M.new(deps)
       end
     end
 
-    schedulePoll()
+    syncPoll(false)
     publish()
     if refreshPending then
       refresh()
@@ -146,9 +152,7 @@ function M.new(deps)
     if result == nil or result.timedOut or result.exitCode ~= 0 then
       refreshPending = false
       status.error = failureText("set " .. mode, result)
-      -- A poll or startup retry that came due during the switch was dropped
-      -- with refreshPending; re-arm them so reads resume.
-      schedulePoll()
+      -- A startup retry that came due during the switch was dropped with refreshPending; re-arm it.
       if status.loading and retryAt == nil then
         scheduleRetry()
       end
@@ -196,16 +200,19 @@ function M.new(deps)
       refresh()
     end
     if nextPollAt ~= nil and nextPollAt <= now then
-      nextPollAt = nil
+      nextPollAt += pollIntervalMs
+      if nextPollAt <= now then
+        nextPollAt = now + pollIntervalMs -- skip missed ticks (e.g. after suspend)
+      end
       refresh()
     end
   end
 
   local function onConfigChanged()
+    local previousIntervalMs = pollIntervalMs
     readConfig()
-    schedulePoll()
+    syncPoll(pollIntervalMs ~= previousIntervalMs)
   end
-
   local function start()
     host.state.watch(protocol.CMD_KEY, function(cmd)
       if type(cmd) == "table" then

@@ -270,4 +270,37 @@ do
   })
 end
 
+do
+  local h = start()
+  complete(h, 1, GET_OK)
+  advance(h, 10000)
+  h.ctl.handle("refresh")
+  complete(h, 2, GET_OK)
+  advance(h, 5000)
+  eq("manual refresh does not delay the next poll", { #h.calls, lastCommand(h) }, { 3, "cardwire get" })
+end
+
+do
+  local cfg = {}
+  local h = start({ config = cfg })
+  complete(h, 1, GET_OK)
+  advance(h, 10000)
+  h.ctl.onConfigChanged()
+  advance(h, 5000)
+  eq("unchanged settings keep the poll schedule", #h.calls, 2)
+end
+
+do
+  local cfg = {}
+  local h = start({ config = cfg })
+  complete(h, 1, GET_OK)
+  advance(h, 10000)
+  cfg.poll_interval_seconds = 30
+  h.ctl.onConfigChanged()
+  advance(h, 29999)
+  eq("interval change restarts the poll deadline", #h.calls, 1)
+  advance(h, 1)
+  eq("restarted poll fires at the new interval", #h.calls, 2)
+end
+
 harness.finish("controller")
