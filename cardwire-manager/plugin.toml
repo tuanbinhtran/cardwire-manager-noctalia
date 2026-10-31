@@ -1,0 +1,51 @@
+id = "tuanbinhtran/cardwire-manager"
+name = "Cardwire Manager"
+version = "0.1.0"
+plugin_api = 26
+author = "tuanbinhtran"
+license = "MIT"
+icon = "cpu"
+description = "Bar widget and panel for switching Cardwire GPU modes and showing the active mode."
+tags = ["bar", "panel", "service", "hardware", "system"]
+dependencies = ["cardwire"]
+
+[[setting]]
+key = "polling_enabled"
+type = "bool"
+label_key = "settings.polling_enabled.label"
+description_key = "settings.polling_enabled.description"
+default = true
+
+[[setting]]
+key = "poll_interval_seconds"
+type = "int"
+label_key = "settings.poll_interval_seconds.label"
+description_key = "settings.poll_interval_seconds.description"
+default = 15
+min = 5
+max = 120
+visible_when = { key = "polling_enabled", values = ["true"] }
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[widget]]
+id = "bar"
+entry = "bar.luau"
+
+  [[widget.setting]]
+  key = "abbreviate_mode_names"
+  type = "bool"
+  label_key = "settings.abbreviate_mode_names.label"
+  description_key = "settings.abbreviate_mode_names.description"
+  default = false
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 420
+height = 400
+placement = "attached"
+position = "auto"
+open_near_click = true

@@ -1,0 +1,12 @@
+[[plugin]]
+id           = "tuanbinhtran/cardwire-manager"
+name         = "Cardwire Manager"
+version      = "0.1.0"
+author       = "tuanbinhtran"
+license      = "MIT"
+icon         = "cpu"
+description  = "Bar widget and panel for switching Cardwire GPU modes and showing the active mode."
+deprecated   = false
+plugin_api   = 26
+tags         = ["bar", "panel", "service", "hardware", "system"]
+dependencies = ["cardwire"]

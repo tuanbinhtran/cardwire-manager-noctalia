@@ -1,0 +1,43 @@
+{
+  "settings": {
+    "polling_enabled": {
+      "label": "Periodic polling",
+      "description": "Periodically run cardwire get. Startup, manual and post-switch refreshes always run."
+    },
+    "poll_interval_seconds": {
+      "label": "Refresh interval",
+      "description": "Seconds between periodic cardwire get calls."
+    },
+    "abbreviate_mode_names": {
+      "label": "Abbreviate mode names",
+      "description": "Show only the first letter of the active mode in the bar."
+    }
+  },
+  "bar": {
+    "no_mode": "NM",
+    "tooltip_mode": "Cardwire mode",
+    "tooltip_status": "Status"
+  },
+  "panel": {
+    "close": "Close",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing",
+    "mode_description": "Switch to {mode} mode",
+    "no_modes": "Cardwire reported no modes."
+  },
+  "status": {
+    "loading": "Loading Cardwire…",
+    "no_mode": "No mode",
+    "updated": "Updated {time}"
+  },
+  "notify": {
+    "switch_failed": "Cardwire mode switch failed"
+  },
+  "error": {
+    "mode_empty": "Mode name is empty.",
+    "unrecognized_output": "Unrecognized cardwire get output",
+    "exited": "cardwire {command} exited with code {code}",
+    "timed_out": "cardwire {command} timed out",
+    "launch_failed": "Could not run cardwire {command}. Is cardwire installed and on PATH?"
+  }
+}
