@@ -48,6 +48,12 @@ function M.new(deps)
     nextPollAt = (pollingEnabled and not status.loading) and (host.nowMs() + pollIntervalMs) or nil
   end
 
+  -- retryIndex counts fired retry timers only (as DMS does), so failed manual
+  -- refreshes during startup reschedule the current delay without using one up.
+  local function scheduleRetry()
+    retryAt = host.nowMs() + STARTUP_RETRY_DELAYS_MS[math.min(retryIndex + 1, #STARTUP_RETRY_DELAYS_MS)]
+  end
+
   local function failureText(command, result)
     if result == nil then
       return tr("error.launch_failed", { command = command })
@@ -100,8 +106,7 @@ function M.new(deps)
       if status.error == "" or retryIndex >= #STARTUP_RETRY_DELAYS_MS then
         status.loading = false
       else
-        retryIndex += 1
-        retryAt = host.nowMs() + STARTUP_RETRY_DELAYS_MS[retryIndex]
+        scheduleRetry()
       end
     end
 
@@ -141,6 +146,12 @@ function M.new(deps)
     if result == nil or result.timedOut or result.exitCode ~= 0 then
       refreshPending = false
       status.error = failureText("set " .. mode, result)
+      -- A poll or startup retry that came due during the switch was dropped
+      -- with refreshPending; re-arm them so reads resume.
+      schedulePoll()
+      if status.loading and retryAt == nil then
+        scheduleRetry()
+      end
       publish()
       host.notifyError(tr("notify.switch_failed"), status.error)
       return
@@ -177,6 +188,7 @@ function M.new(deps)
     local now = host.nowMs()
     if retryAt ~= nil and retryAt <= now then
       retryAt = nil
+      retryIndex += 1
       refresh()
     end
     if verifyAt ~= nil and verifyAt <= now then
