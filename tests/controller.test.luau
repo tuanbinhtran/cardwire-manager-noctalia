@@ -31,10 +31,24 @@ local function tr(key, params)
   return table.concat(parts, " ")
 end
 
+local function attach(h, id)
+  h.widgets[id] = h.now
+  h.api.state.set(protocol.WIDGET_KEY, { id = id, attached = true })
+end
+
+local function detach(h, id)
+  h.widgets[id] = nil
+  h.api.state.set(protocol.WIDGET_KEY, { id = id, attached = false })
+end
+
+local function silence(h, id)
+  h.widgets[id] = nil
+end
+
 -- Returns a started fake host. opts: config (getConfig values), launchFails (runAsync returns false).
 local function start(opts)
   opts = opts or {}
-  local h = { now = 0, calls = {}, values = {}, watchers = {}, notifications = {} }
+  local h = { now = 0, calls = {}, values = {}, watchers = {}, notifications = {}, widgets = {} }
   local api = {
     tr = tr,
     nowMs = function()
@@ -71,6 +85,7 @@ local function start(opts)
       end,
     },
   }
+  h.api = api
   h.ctl = controller.new({
     noctalia = api,
     cardwire = cardwire,
@@ -80,6 +95,9 @@ local function start(opts)
     end,
   })
   h.ctl.start()
+  if opts.widgets ~= false then
+    attach(h, "w1")
+  end
   return h
 end
 
@@ -92,8 +110,19 @@ local function complete(h, index, result)
 end
 
 local function advance(h, ms)
-  h.now += ms
-  h.ctl.update()
+  local remaining = ms
+  while remaining > 0 do
+    local step = math.min(250, remaining)
+    remaining -= step
+    h.now += step
+    for id, last in pairs(h.widgets) do
+      if h.now - last >= protocol.WIDGET_HEARTBEAT_MS then
+        h.widgets[id] = h.now
+        h.api.state.set(protocol.WIDGET_KEY, { id = id, attached = true })
+      end
+    end
+    h.ctl.update()
+  end
 end
 
 local function lastCommand(h)
@@ -301,6 +330,74 @@ do
   eq("interval change restarts the poll deadline", #h.calls, 1)
   advance(h, 1)
   eq("restarted poll fires at the new interval", #h.calls, 2)
+end
+
+do
+  local h = start({ widgets = false })
+  eq("without a widget the startup read runs once", #h.calls, 1)
+  complete(h, 1, GET_OK)
+  advance(h, 60000)
+  eq("polling stays stopped without a widget", #h.calls, 1)
+end
+
+do
+  local h = start({ widgets = false })
+  complete(h, 1, failed("down"))
+  advance(h, 60000)
+  eq("without a widget a failed startup read is not retried", { #h.calls, status(h).loading }, { 1, false })
+end
+
+do
+  local h = start({ widgets = false })
+  complete(h, 1, failed("down"))
+  attach(h, "w1")
+  eq("first widget restarts the startup sequence", { #h.calls, status(h).loading }, { 2, true })
+  complete(h, 2, failed("down"))
+  advance(h, 2000)
+  eq("startup retry resumes after a widget appears", #h.calls, 3)
+end
+
+do
+  local h = start({ widgets = false })
+  complete(h, 1, GET_OK)
+  attach(h, "w1")
+  eq("first widget after a successful read refreshes", #h.calls, 2)
+  complete(h, 2, GET_OK)
+  advance(h, 15000)
+  eq("first widget starts polling", #h.calls, 3)
+end
+
+do
+  local h = start()
+  complete(h, 1, GET_OK)
+  detach(h, "w1")
+  advance(h, 60000)
+  eq("last widget detaching stops polling", #h.calls, 1)
+end
+
+do
+  local h = start()
+  complete(h, 1, GET_OK)
+  silence(h, "w1")
+  advance(h, 60000)
+  eq("a widget that stops heartbeating loses its lease", #h.calls, 1)
+end
+
+do
+  local h = start()
+  attach(h, "w2")
+  complete(h, 1, GET_OK)
+  detach(h, "w1")
+  advance(h, 15000)
+  eq("polling continues while one of two widgets remains", #h.calls, 2)
+end
+
+do
+  local h = start()
+  complete(h, 1, failed("down"))
+  detach(h, "w1")
+  advance(h, 60000)
+  eq("last widget leaving during startup ends loading", { #h.calls, status(h).loading }, { 1, false })
 end
 
 harness.finish("controller")

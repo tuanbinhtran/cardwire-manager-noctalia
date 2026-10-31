@@ -29,6 +29,8 @@ function M.new(deps)
   local nextPollAt = nil
   local pollingEnabled = true
   local pollIntervalMs = 15000
+  local widgets = {} -- bar widget id -> lease expiry (ms)
+  local hasWidgets = false
 
   local function readConfig()
     pollingEnabled = host.getConfig("polling_enabled") ~= false
@@ -47,7 +49,7 @@ function M.new(deps)
   -- Fixed-rate poll like the DMS repeating Timer: armed when polling becomes
   -- active, restarted only when asked (interval change), cleared when inactive.
   local function syncPoll(restart)
-    if not (pollingEnabled and not status.loading) then
+    if not (pollingEnabled and hasWidgets and not status.loading) then
       nextPollAt = nil
     elseif restart or nextPollAt == nil then
       nextPollAt = host.nowMs() + pollIntervalMs
@@ -109,7 +111,7 @@ function M.new(deps)
     end
 
     if status.loading then
-      if status.error == "" or retryIndex >= #STARTUP_RETRY_DELAYS_MS then
+      if status.error == "" or retryIndex >= #STARTUP_RETRY_DELAYS_MS or not hasWidgets then
         status.loading = false
       else
         scheduleRetry()
@@ -153,7 +155,7 @@ function M.new(deps)
       refreshPending = false
       status.error = failureText("set " .. mode, result)
       -- A startup retry that came due during the switch was dropped with refreshPending; re-arm it.
-      if status.loading and retryAt == nil then
+      if status.loading and retryAt == nil and hasWidgets then
         scheduleRetry()
       end
       publish()
@@ -187,9 +189,44 @@ function M.new(deps)
     end
   end
 
+  -- Drops expired leases and applies DMS registerWidget/unregisterWidget transitions.
+  local function syncWidgets()
+    local now = host.nowMs()
+    local any = false
+    for id, expiresAt in pairs(widgets) do
+      if expiresAt <= now then
+        widgets[id] = nil
+      else
+        any = true
+      end
+    end
+    if any == hasWidgets then
+      return
+    end
+    hasWidgets = any
+    if any then
+      -- First widget: restart the startup sequence when no mode is known yet.
+      retryIndex = 0
+      status.loading = status.active == ""
+      publish()
+      if not status.refreshing then
+        refresh()
+      end
+    else
+      -- Last widget gone: stop startup retries.
+      retryAt = nil
+      if status.loading then
+        status.loading = false
+        publish()
+      end
+    end
+    syncPoll(false)
+  end
+
   -- Fires due deadlines; a refresh while busy only marks one pending follow-up.
   local function update()
     local now = host.nowMs()
+    syncWidgets()
     if retryAt ~= nil and retryAt <= now then
       retryAt = nil
       retryIndex += 1
@@ -218,6 +255,13 @@ function M.new(deps)
       if type(cmd) == "table" then
         handle(cmd.action, cmd.mode)
       end
+    end)
+    host.state.watch(protocol.WIDGET_KEY, function(msg)
+      if type(msg) ~= "table" or type(msg.id) ~= "string" or msg.id == "" then
+        return
+      end
+      widgets[msg.id] = msg.attached == true and (host.nowMs() + protocol.WIDGET_LEASE_MS) or nil
+      syncWidgets()
     end)
     readConfig()
     host.setUpdateInterval(TICK_MS)

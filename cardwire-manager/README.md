@@ -28,8 +28,8 @@ noctalia msg panel-toggle tuanbinhtran/cardwire-manager:panel
 
 | Key | Type | Default | Scope | Meaning |
 | --- | --- | --- | --- | --- |
-| `polling_enabled` | bool | `true` | Plugin-level (Settings → Plugins gear) | Periodically run `cardwire get`; startup, manual, and post-switch refreshes always run. |
-| `poll_interval_seconds` | int | `15` seconds (5–120) | Plugin-level | Seconds between periodic reads. |
+| `polling_enabled` | bool | `true` | Plugin-level (Settings → Plugins gear) | Periodically run `cardwire get` while at least one bar widget is placed; the service still performs one initial read without a widget. Startup retries also require a placed widget. |
+| `poll_interval_seconds` | int | `15` seconds (5–120) | Plugin-level | Seconds between fixed-rate periodic reads while a bar widget is placed. |
 | `abbreviate_mode_names` | bool | `false` | Widget-level | Show only the first letter of the active mode in the bar; show `NM` when no mode is known. |
 
 ## IPC

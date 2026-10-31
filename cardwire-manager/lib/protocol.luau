@@ -6,6 +6,13 @@ M.STATUS_KEY = "cardwire.status"
 M.CMD_KEY = "cardwire.cmd"
 M.PANEL_ID = "tuanbinhtran/cardwire-manager:panel"
 
+-- Bar widgets hold a lease on WIDGET_KEY so the service polls only while one is
+-- placed (Noctalia has no widget-count API). Each live widget re-announces every
+-- WIDGET_HEARTBEAT_MS; the service drops ids not heard from for WIDGET_LEASE_MS.
+M.WIDGET_KEY = "cardwire.widget"
+M.WIDGET_HEARTBEAT_MS = 5000
+M.WIDGET_LEASE_MS = 15000
+
 -- Snapshot published by the service on STATUS_KEY. UI entries use it until the
 -- service has published (state.watch does not replay the current value).
 function M.emptyStatus()
@@ -31,6 +38,11 @@ function M.send(action, mode)
     mode = mode or "",
     id = `{noctalia.nowMs()}-{seq}-{math.random(1, 1000000000)}`,
   })
+end
+
+-- Announce (attached = true) or withdraw (false) a bar widget instance.
+function M.announce(id, attached)
+  noctalia.state.set(M.WIDGET_KEY, { id = id, attached = attached })
 end
 
 return M

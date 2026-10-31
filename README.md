@@ -6,7 +6,7 @@ A Noctalia v5 port of [jankelemen/cardwire-manager](https://github.com/jankeleme
 
 - Bar pill showing the active GPU mode with a CPU glyph, a warning glyph on error, and optional mode-name abbreviation.
 - Panel listing available modes with one-click switching and the active row highlighted.
-- Periodic polling, startup retries after 2/5/10 seconds, refresh coalescing, and post-switch verification after 400 ms.
+- Fixed-rate polling and startup retries while the bar widget is placed, plus refresh coalescing and post-switch verification after 400 ms. The service still performs one initial read without a widget.
 - IPC events for command-line and keybind control.
 - MIT licensed.
 

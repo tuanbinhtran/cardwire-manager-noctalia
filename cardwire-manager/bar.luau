@@ -6,6 +6,10 @@ local tr = noctalia.tr
 local status = noctalia.state.get(protocol.STATUS_KEY) or protocol.emptyStatus()
 local abbreviate = noctalia.getConfig("abbreviate_mode_names") == true
 local rendered = false
+-- Unique per runtime; a rare same-ms collision only merges two leases until the next heartbeat.
+local widgetId = `{noctalia.nowMs()}-{math.random(1, 1000000000)}`
+local lastAnnounceMs = noctalia.nowMs()
+protocol.announce(widgetId, true)
 
 local function render()
   local showError = (not status.loading) and status.error ~= ""
@@ -36,6 +40,15 @@ function update()
     rendered = true
     render()
   end
+  local now = noctalia.nowMs()
+  if now - lastAnnounceMs >= protocol.WIDGET_HEARTBEAT_MS then
+    lastAnnounceMs = now
+    protocol.announce(widgetId, true)
+  end
+end
+
+function onExit()
+  protocol.announce(widgetId, false)
 end
 
 function onClick()
