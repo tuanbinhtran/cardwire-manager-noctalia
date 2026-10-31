@@ -21,7 +21,7 @@ local function render()
     ui.glyph({ name = showError and "alert-triangle" or "cpu", size = 28, color = showError and "error" or "primary" }),
   }
   local titleChildren = {
-    ui.label({ text = activeLabel, fontSize = 16, fontWeight = "bold", color = "on_surface" }),
+    ui.label({ text = activeLabel, fontSize = 16, fontWeight = "bold", color = showError and "error" or "on_surface" }),
   }
   if status.loading then
     table.insert(titleChildren, ui.label({ text = tr("status.loading"), color = "on_surface_variant" }))

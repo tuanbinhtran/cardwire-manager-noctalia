@@ -5,11 +5,14 @@ local tr = noctalia.tr
 
 local status = noctalia.state.get(protocol.STATUS_KEY) or protocol.emptyStatus()
 local abbreviate = noctalia.getConfig("abbreviate_mode_names") == true
+local rendered = false
 
 local function render()
   local showError = (not status.loading) and status.error ~= ""
   barWidget.setGlyph(showError and "alert-triangle" or "cpu")
   barWidget.setGlyphColor(showError and "error" or "on_surface")
+  -- "on_surface" from setColor/setGlyphColor means the host's configured default.
+  barWidget.setColor(showError and "error" or "on_surface")
   barWidget.setText(cardwire.barText(status.active, abbreviate, tr("bar.no_mode")))
 
   local modeText = status.active ~= "" and cardwire.formatModeLabel(status.active) or tr("status.no_mode")
@@ -27,8 +30,12 @@ noctalia.state.watch(protocol.STATUS_KEY, function(v)
   end
 end)
 
+-- The first host tick renders; afterwards the status watch drives every render.
 function update()
-  render()
+  if not rendered then
+    rendered = true
+    render()
+  end
 end
 
 function onClick()
@@ -38,5 +45,3 @@ end
 function onRightClick()
   protocol.send("cycle")
 end
-
-render()
