@@ -19,4 +19,7 @@ if [ -z "$LUAU" ]; then
     fi
   fi
 fi
-exec "$LUAU" "$ROOT/tests/cardwire.test.luau"
+# One process per suite: the shared harness counts assertions per run.
+for suite in "$ROOT"/tests/*.test.luau; do
+  "$LUAU" "$suite"
+done

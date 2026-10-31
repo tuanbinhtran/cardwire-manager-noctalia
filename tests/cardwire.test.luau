@@ -1,49 +1,7 @@
 --!nonstrict
 local cardwire = require("../cardwire-manager/lib/cardwire")
-
-local assertions = 0
-local failures = 0
-
-local function render(value)
-  if type(value) ~= "table" then
-    return tostring(value)
-  end
-
-  local parts = {}
-  for key, item in pairs(value) do
-    table.insert(parts, `{render(key)}={render(item)}`)
-  end
-  return `{` .. table.concat(parts, ", ") .. `}`
-end
-
-local function deepEqual(actual, expected)
-  if type(actual) ~= type(expected) then
-    return false
-  end
-  if type(actual) ~= "table" then
-    return actual == expected
-  end
-
-  for key, value in pairs(actual) do
-    if expected[key] == nil or not deepEqual(value, expected[key]) then
-      return false
-    end
-  end
-  for key in pairs(expected) do
-    if actual[key] == nil then
-      return false
-    end
-  end
-  return true
-end
-
-local function eq(name, actual, expected)
-  assertions += 1
-  if not deepEqual(actual, expected) then
-    failures += 1
-    print(`FAIL {name}: expected {render(expected)} got {render(actual)}`)
-  end
-end
+local harness = require("./harness")
+local eq = harness.eq
 
 eq("parseGet standard output", cardwire.parseGet("Current Mode: Smart\nAvailable Mode: integrated, hybrid, smart\n"), {
   current = "smart",
@@ -83,7 +41,4 @@ eq("outputText nil", cardwire.outputText(nil), "")
 eq("trim nil", cardwire.trim(nil), "")
 eq("trim whitespace", cardwire.trim("  a b \t"), "a b")
 
-print(`{assertions} passed, {failures} failed`)
-if failures > 0 then
-  error("tests failed")
-end
+harness.finish("cardwire")
