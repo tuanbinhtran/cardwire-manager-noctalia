@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
-# Runs the pure-logic Luau unit tests. Uses `luau` from PATH, $LUAU, or
-# downloads the pinned luau CLI release into .tools/ (gitignored).
+# Runs every tests/*.test.luau suite. Uses $LUAU, else `luau` from PATH, else
+# downloads the pinned luau CLI release (x86_64 glibc) into .tools/ (gitignored).
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 LUAU_VERSION=0.745

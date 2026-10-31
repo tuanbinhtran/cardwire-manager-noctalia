@@ -12,7 +12,7 @@ A Noctalia v5 port of [jankelemen/cardwire-manager](https://github.com/jankeleme
 
 ## Requirements
 
-- Noctalia 5.3.0 or newer (plugin API 26).
+- Noctalia v5 with plugin API 26 or newer (every tagged release from 5.0.1; tested on 5.3.0).
 - `cardwire` installed and on `PATH`, with the `cardwired` daemon running. Enable it with `sudo systemctl enable --now cardwired`.
 - Check that Cardwire is working with `cardwire get`.
 
@@ -113,7 +113,7 @@ rm -r ~/.local/share/noctalia/plugins/cardwire-manager  # drop-in copy only
 - Check Noctalia's log at `~/.cache/noctalia/noctalia.log`, for example with `grep cardwire ~/.cache/noctalia/noctalia.log`.
 - Run `noctalia plugins lint cardwire-manager` to check the plugin manifest and entries.
 - Check the daemon with `cardwire manager status`, then inspect the command output with `cardwire get`.
-- An **incompatible plugin API** badge means the installed Noctalia version is older than 5.3.0 (plugin API 26); upgrade Noctalia.
+- An **incompatible plugin API** badge means the installed Noctalia predates plugin API 26; upgrade Noctalia.
 
 ## Development
 
@@ -125,6 +125,7 @@ cardwire-manager-noctalia/
 ├── cardwire-manager/
 │   ├── lib/
 │   │   ├── cardwire.luau
+│   │   ├── controller.luau
 │   │   └── protocol.luau
 │   ├── translations/
 │   │   └── en.json
@@ -137,16 +138,18 @@ cardwire-manager-noctalia/
 ├── scripts/
 │   └── test.sh
 └── tests/
-    └── cardwire.test.luau
+    ├── cardwire.test.luau
+    ├── controller.test.luau
+    └── harness.luau
 ```
 
-Run the pure-logic Luau unit tests with:
+Run the Luau unit tests with:
 
 ```sh
 ./scripts/test.sh
 ```
 
-The script uses `luau` from `PATH` if available; otherwise it downloads the pinned Luau 0.745 CLI into the gitignored `.tools/` directory. Also lint the plugin with:
+The suites cover the pure helpers (`lib/cardwire.luau`) and the service state machine (`lib/controller.luau`, driven by a fake host with a manual clock). The script uses `$LUAU` if set, else `luau` from `PATH`; otherwise it downloads the pinned Luau 0.745 CLI (`luau-ubuntu.zip`, an x86_64 glibc build) into the gitignored `.tools/` directory, which needs `curl` and `unzip`. On other platforms run `LUAU=/path/to/luau ./scripts/test.sh`. Also lint the plugin with:
 
 ```sh
 noctalia plugins lint cardwire-manager
