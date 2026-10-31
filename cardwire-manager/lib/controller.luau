@@ -119,13 +119,13 @@ function M.new(deps)
 
   function setMode(mode)
     mode = string.lower(cardwire.trim(mode))
+    if busy() or mode == status.active then
+      return
+    end
     if mode == "" then
       status.error = tr("error.mode_empty")
       publish()
       host.notifyError(tr("notify.switch_failed"), status.error)
-      return
-    end
-    if busy() or mode == status.active then
       return
     end
 

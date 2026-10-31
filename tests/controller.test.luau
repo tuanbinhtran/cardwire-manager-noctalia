@@ -247,4 +247,27 @@ do
   eq("manual refresh during startup keeps the 2 s retry", { #h.calls, lastCommand(h) }, { 3, "cardwire get" })
 end
 
+do
+  local h = start()
+  complete(h, 1, failed("down"))
+  h.ctl.handle("set", "")
+  eq("empty mode while no mode is known is ignored", h.notifications, {})
+end
+
+do
+  local h = start()
+  h.ctl.handle("set", "  ")
+  eq("empty mode while reading is ignored", h.notifications, {})
+end
+
+do
+  local h = start()
+  complete(h, 1, GET_OK)
+  h.ctl.handle("set", "")
+  eq("empty mode with a known mode reports an error", { status(h).error, h.notifications }, {
+    "error.mode_empty",
+    { { title = "notify.switch_failed", body = "error.mode_empty" } },
+  })
+end
+
 harness.finish("controller")
