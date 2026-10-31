@@ -132,6 +132,7 @@ cardwire-manager-noctalia/
 │   ├── panel.luau
 │   ├── plugin.toml
 │   ├── service.luau
+│   ├── thumbnail.webp
 │   └── README.md
 ├── scripts/
 │   └── test.sh
