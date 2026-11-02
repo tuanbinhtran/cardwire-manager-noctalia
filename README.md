@@ -92,7 +92,7 @@ noctalia msg panel-toggle tuanbinhtran/cardwire-manager:panel
 
 ### Reloading
 
-`.luau` edits hot-reload. After editing `plugin.toml`, reload the configuration:
+`.luau` edits hot-reload. A reload that hits a syntax error (for example a half-saved file) stops Noctalia from watching the plugin's `lib/` modules, so later edits are not picked up; check the log and run `noctalia msg config-reload` after fixing it. After editing `plugin.toml`, reload the configuration:
 
 ```sh
 noctalia msg config-reload

@@ -42,6 +42,8 @@ noctalia msg plugin tuanbinhtran/cardwire-manager:service all set <integrated|hy
 noctalia msg plugin tuanbinhtran/cardwire-manager:service all cycle
 ```
 
+`set` accepts only a mode reported by `cardwire get` (any well-formed name before the first successful read); other values are rejected with an error notification.
+
 ## Notes
 
 - The plugin runs only `cardwire get` (5-second timeout) and `cardwire set <mode>` (15-second timeout), always as argv (never through a shell).
