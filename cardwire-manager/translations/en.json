@@ -2,7 +2,7 @@
   "settings": {
     "polling_enabled": {
       "label": "Periodic polling",
-      "description": "Periodically run cardwire get. Startup, manual and post-switch refreshes always run."
+      "description": "Periodically run cardwire get while a bar widget is placed. Manual and post-switch refreshes always run."
     },
     "poll_interval_seconds": {
       "label": "Refresh interval",
@@ -35,6 +35,7 @@
   },
   "error": {
     "mode_empty": "Mode name is empty.",
+    "mode_unknown": "Unknown Cardwire mode: {mode}",
     "unrecognized_output": "Unrecognized cardwire get output",
     "exited": "cardwire {command} exited with code {code}",
     "timed_out": "cardwire {command} timed out",

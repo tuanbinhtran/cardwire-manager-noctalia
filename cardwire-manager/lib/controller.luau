@@ -73,6 +73,10 @@ function M.new(deps)
     if output ~= "" then
       return output
     end
+    -- 127 = command not found from the host's exec.
+    if result.exitCode == 127 then
+      return tr("error.launch_failed", { command = command })
+    end
     return tr("error.exited", { command = command, code = tostring(result.exitCode) })
   end
 
@@ -132,6 +136,12 @@ function M.new(deps)
     end
     if mode == "" then
       status.error = tr("error.mode_empty")
+      publish()
+      host.notifyError(tr("notify.switch_failed"), status.error)
+      return
+    end
+    if not string.match(mode, "^[%w][%w_%-]*$") or (#status.modes > 0 and not table.find(status.modes, mode)) then
+      status.error = tr("error.mode_unknown", { mode = mode })
       publish()
       host.notifyError(tr("notify.switch_failed"), status.error)
       return
@@ -267,6 +277,8 @@ function M.new(deps)
     host.setUpdateInterval(TICK_MS)
     publish()
     refresh()
+    -- Bars that loaded before the lease watch answer with an immediate announce.
+    host.state.set(protocol.READY_KEY, { at = host.nowMs() })
   end
 
   return {

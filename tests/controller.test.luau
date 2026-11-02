@@ -45,10 +45,15 @@ local function silence(h, id)
   h.widgets[id] = nil
 end
 
--- Returns a started fake host. opts: config (getConfig values), launchFails (runAsync returns false).
+-- Returns a started fake host. opts: config (getConfig values), launchFails
+-- (runAsync returns false), widgets (false disables the default bar), earlyWidgets
+-- (ids whose initial announce was lost before the service started).
 local function start(opts)
   opts = opts or {}
   local h = { now = 0, calls = {}, values = {}, watchers = {}, notifications = {}, widgets = {} }
+  for _, id in ipairs(opts.earlyWidgets or {}) do
+    h.widgets[id] = h.now
+  end
   local api = {
     tr = tr,
     nowMs = function()
@@ -94,6 +99,16 @@ local function start(opts)
       return "12:00:00"
     end,
   })
+  api.state.watch(protocol.READY_KEY, function()
+    local ids = {}
+    for id in pairs(h.widgets) do
+      table.insert(ids, id)
+    end
+    for _, id in ipairs(ids) do
+      h.widgets[id] = h.now
+      api.state.set(protocol.WIDGET_KEY, { id = id, attached = true })
+    end
+  end)
   h.ctl.start()
   if opts.widgets ~= false then
     attach(h, "w1")
@@ -398,6 +413,50 @@ do
   detach(h, "w1")
   advance(h, 60000)
   eq("last widget leaving during startup ends loading", { #h.calls, status(h).loading }, { 1, false })
+end
+
+do
+  local h = start()
+  complete(h, 1, { exitCode = 127, stdout = "", stderr = "", timedOut = false })
+  eq("missing cardwire binary reports launch failure", status(h).error, "error.launch_failed command=get")
+end
+
+do
+  local h = start()
+  complete(h, 1, GET_OK)
+  h.ctl.handle("set", "turbo")
+  eq("unknown mode is rejected when modes are known", { #h.calls, status(h).error, h.notifications }, {
+    1,
+    "error.mode_unknown mode=turbo",
+    { { title = "notify.switch_failed", body = "error.mode_unknown mode=turbo" } },
+  })
+end
+
+do
+  local h = start()
+  complete(h, 1, failed("down"))
+  h.ctl.handle("set", "--help")
+  eq("option-like mode is rejected before modes are known", { #h.calls, status(h).error }, {
+    1,
+    "error.mode_unknown mode=--help",
+  })
+end
+
+do
+  local h = start({ widgets = false, earlyWidgets = { "w1" } })
+  complete(h, 1, failed("down"))
+  eq("a widget heard only via the ready handshake keeps startup retries", { #h.calls, status(h).loading }, { 1, true })
+  advance(h, 2000)
+  eq("a widget heard only via the ready handshake keeps startup retries", #h.calls, 2)
+end
+
+do
+  local h = start({ widgets = false, earlyWidgets = { "w1" } })
+  complete(h, 1, GET_OK)
+  advance(h, 14999)
+  eq("a widget heard via the ready handshake adds no extra read", #h.calls, 1)
+  advance(h, 1)
+  eq("a widget heard via the ready handshake adds no extra read", #h.calls, 2)
 end
 
 harness.finish("controller")

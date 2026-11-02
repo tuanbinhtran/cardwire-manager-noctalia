@@ -9,6 +9,9 @@ M.PANEL_ID = "tuanbinhtran/cardwire-manager:panel"
 -- Bar widgets hold a lease on WIDGET_KEY so the service polls only while one is
 -- placed (Noctalia has no widget-count API). Each live widget re-announces every
 -- WIDGET_HEARTBEAT_MS; the service drops ids not heard from for WIDGET_LEASE_MS.
+-- The service publishes READY_KEY after watching widget leases; bars answer with
+-- an immediate announce so widgets that loaded first are discovered promptly.
+M.READY_KEY = "cardwire.ready"
 M.WIDGET_KEY = "cardwire.widget"
 M.WIDGET_HEARTBEAT_MS = 5000
 M.WIDGET_LEASE_MS = 15000
@@ -30,7 +33,7 @@ end
 local seq = 0
 
 -- Publish a command for the service: action is "refresh", "set" or "cycle".
--- The id makes every command a distinct value so repeated commands still notify.
+-- The id makes each command uniquely identifiable.
 function M.send(action, mode)
   seq += 1
   noctalia.state.set(M.CMD_KEY, {

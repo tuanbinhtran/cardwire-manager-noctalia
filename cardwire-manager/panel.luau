@@ -3,7 +3,7 @@ local cardwire = require("./lib/cardwire.luau")
 local protocol = require("./lib/protocol.luau")
 local tr = noctalia.tr
 
-local status = noctalia.state.get(protocol.STATUS_KEY) or protocol.emptyStatus()
+local status = protocol.emptyStatus()
 local isOpen = false
 local hovered = nil
 local showClose = true
@@ -89,6 +89,8 @@ noctalia.state.watch(protocol.STATUS_KEY, function(v)
     render()
   end
 end)
+-- Read after watching so a publish between the two calls cannot be missed.
+status = noctalia.state.get(protocol.STATUS_KEY) or status
 
 function onOpen(_context)
   isOpen = true

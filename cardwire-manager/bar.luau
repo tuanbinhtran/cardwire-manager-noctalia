@@ -3,7 +3,7 @@ local cardwire = require("./lib/cardwire.luau")
 local protocol = require("./lib/protocol.luau")
 local tr = noctalia.tr
 
-local status = noctalia.state.get(protocol.STATUS_KEY) or protocol.emptyStatus()
+local status = protocol.emptyStatus()
 local abbreviate = noctalia.getConfig("abbreviate_mode_names") == true
 local rendered = false
 -- Unique per runtime; a rare same-ms collision only merges two leases until the next heartbeat.
@@ -33,6 +33,13 @@ noctalia.state.watch(protocol.STATUS_KEY, function(v)
     render()
   end
 end)
+
+noctalia.state.watch(protocol.READY_KEY, function()
+  lastAnnounceMs = noctalia.nowMs()
+  protocol.announce(widgetId, true)
+end)
+
+status = noctalia.state.get(protocol.STATUS_KEY) or status
 
 -- The first host tick renders; afterwards the status watch drives every render.
 function update()
